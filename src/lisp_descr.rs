@@ -1,9 +1,6 @@
-pub use either::*;
 use std::str::FromStr;
 use std::string;
-
-// Basic types
-//pub type LispValue = Either<Expression, List>;
+pub use crate::either::*;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Atom {
@@ -16,7 +13,6 @@ pub enum Atom {
 }
 
 impl FromStr for Atom {
-    //impl Atom {
     // Try to convert the given str into an Atom
     type Err = &'static str;
 
@@ -70,8 +66,7 @@ pub type List = Vec<Expression>;
 
 // Expressions
 // They are evaluated
-#[derive(Debug, Eq, PartialEq)]
-pub struct Expression(Either<Atom, Compound>);
+pub type Expression = Either<Atom, Compound>;
 
 impl FromStr for Expression {
     type Err = &'static str;
@@ -84,11 +79,11 @@ impl FromStr for Expression {
         // An expression is either an atom or a compound.
         match Atom::from_str(s) {
             // The expression is an atom, return it.
-            Ok(atom) => Ok(Expression(Left(atom))),
+            Ok(atom) => Ok(Expression::Left(atom)),
             // The expression is not an atom,
             // try to parse it as a compound
             _ => match Compound::from_str(copy_of_s) {
-                Ok(comp) => Ok(Expression(Right(comp))),
+                Ok(comp) => Ok(Expression::Right(comp)),
                 _ => Err("Could not parse the expression"),
             }
         }
