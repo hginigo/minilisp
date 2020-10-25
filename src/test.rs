@@ -1,54 +1,59 @@
-use crate::lisp_descr::Atom;
-use std::convert::TryFrom;
+use crate::lisp_descr::*;
+use std::str::FromStr;
 
 pub fn test_atom() {
-
     ////////// Test booleans
-    let bo = Atom::try_from("#t");
+    let bo = Atom::from_str("#t");
     assert_eq!(Ok(Atom::Bool(true)), bo);
 
-    let bo = Atom::try_from("#f");
+    let bo = Atom::from_str("#f");
     assert_eq!(Ok(Atom::Bool(true)), bo);
 
-    let bo = Atom::try_from("#r");
+    let bo = Atom::from_str("#r");
     assert!(bo.is_err());
 
     ////////// Numbers
-    let nu = Atom::try_from("14");
+    let nu = Atom::from_str("14");
     assert_eq!(Ok(Atom::Number(14)), nu);
 
-    let nu = Atom::try_from("-8123");
+    let nu = Atom::from_str("-8123");
     assert_eq!(Ok(Atom::Number(-8123)), nu);
 
-    let nu = Atom::try_from("43e2");
+    let nu = Atom::from_str("43e2");
     assert!(nu.is_err());
 
     ////////// Test chars
-    let ch = Atom::try_from("'c'");
+    let ch = Atom::from_str("'c'");
     assert_eq!(Ok(Atom::Char('c')), ch);
 
-    let ch = Atom::try_from("'cd'");
+    let ch = Atom::from_str("'cd'");
     assert!(ch.is_err());
 
-    let ch = Atom::try_from("''");
+    let ch = Atom::from_str("''");
     assert!(ch.is_err());
 
-    let ch = Atom::try_from("'''");
+    let ch = Atom::from_str("'''");
     assert_eq!(Ok(Atom::Char('\'')), ch);
 
     ////////// Test strings
-    let st = Atom::try_from("\"egunon gazte\"");
+    let st = Atom::from_str("\"egunon gazte\"");
     assert_eq!(Ok(Atom::String("egunon gazte".to_string())), st);
 
-    let st = Atom::try_from("\"\"");
+    let st = Atom::from_str("\"\"");
     assert_eq!(Ok(Atom::String("".to_string())), st);
 
-    let st = Atom::try_from("\"   \"");
+    let st = Atom::from_str("\"   \"");
     assert_eq!(Ok(Atom::String("   ".to_string())), st);
 
-    let st = Atom::try_from("\"kaixo\" ");
+    let st = Atom::from_str("\"kaixo\" ");
     assert!(st.is_err());
 
-    let st = Atom::try_from("\"");
+    let st = Atom::from_str("\"");
     assert!(st.is_err());
+}
+
+pub fn test_expr() {
+    let ex = Expression::from_str("sum \"holaa\" 'c' #t  1     2 3 12 43 -123)");
+    assert!(ex.is_ok());
+
 }

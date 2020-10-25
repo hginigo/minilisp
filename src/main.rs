@@ -5,4 +5,5 @@ use test::*;
 fn main() {
     println!("Hello, world!");
     test_atom();
+    test_expr();
 }

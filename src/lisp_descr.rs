@@ -1,9 +1,9 @@
-pub use either::Either;
-use std::convert::TryFrom;
+pub use either::*;
+use std::str::FromStr;
 use std::string;
 
 // Basic types
-pub type LispValue = Either<Expression, List>;
+//pub type LispValue = Either<Expression, List>;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Atom {
@@ -15,12 +15,12 @@ pub enum Atom {
     String(string::String),
 }
 
-impl TryFrom<&str> for Atom {
-//impl Atom {
+impl FromStr for Atom {
+    //impl Atom {
     // Try to convert the given str into an Atom
-    type Error = &'static str;
+    type Err = &'static str;
 
-    fn try_from(s: &str) -> Result<Self, Self::Error> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         // Bool
         if s.eq("#t") {
             return Ok(Atom::Bool(true));
@@ -54,7 +54,7 @@ impl TryFrom<&str> for Atom {
             '"' => Ok(Atom::String(s)),
             '\'' => {
                 if s.len() > 1 {
-                    return Err("Too many chars to parse.") 
+                    return Err("Too many chars to parse.");
                 }
                 match s.chars().next() {
                     None => Err("Cannot parse empty char."),
@@ -69,13 +69,76 @@ impl TryFrom<&str> for Atom {
 pub type List = Vec<Expression>;
 
 // Expressions
-pub type Expression = Either<Atom, Compound>;
+// They are evaluated
+#[derive(Debug, Eq, PartialEq)]
+pub struct Expression(Either<Atom, Compound>);
 
+impl FromStr for Expression {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // Hau sekulako basura da ta eztaka bate zentzuik.
+        let string_of_s = String::from(s);
+        let copy_of_s = string_of_s.as_str();
+
+        // An expression is either an atom or a compound.
+        match Atom::from_str(s) {
+            // The expression is an atom, return it.
+            Ok(atom) => Ok(Expression(Left(atom))),
+            // The expression is not an atom,
+            // try to parse it as a compound
+            _ => match Compound::from_str(copy_of_s) {
+                Ok(comp) => Ok(Expression(Right(comp))),
+                _ => Err("Could not parse the expression"),
+            }
+        }
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
 pub struct Compound {
     operator: String,
     operands: Vec<Expression>,
 }
 
+impl FromStr for Compound {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+
+        if !(s.starts_with(LISP_OPC) || s.ends_with(LISP_CLC)) {
+            return Err("Malformed expression");
+        }
+        // Since they are two different chars,
+        // the length of s has to be more than one.
+        let mut s = String::from(&s[1..s.len()-1]);
+
+        // operator found
+        let op = match s
+            .find(|c: char| c == LISP_SEP || c == LISP_OPC) {
+                Some(num) => num,
+                None => return Err("asd"),
+        };
+
+        let operator = s.drain(..op)
+            .collect::<String>()
+            .trim()
+            .to_string();
+
+        // Find the remaining subexpressions and split them
+        // TODO: Do this WRIGHT
+
+        let subexpr: Vec<Expression> = s.split(LISP_SEP)
+            .filter(|s| !s.is_empty())
+            .map(|s: &str| Expression::from_str(s).expect(s))
+            .collect();
+
+        Ok(Compound {
+            operator: operator,
+            operands: subexpr,
+        })
+    }
+}
 // Definitions
 // etc... TODO functions, lambda, let, define
 
