@@ -1,5 +1,5 @@
 [package]
-name = "lisp"
+name = "minilisp"
 version = "0.1.0"
 authors = ["hugo"]
 edition = "2018"
