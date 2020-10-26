@@ -65,4 +65,9 @@ pub fn test_expr() {
     let ex = Expression::from_str("(+ 1 (+ 1 \"asd\") 2)");
     assert!(ex.is_ok());
 
+    match ex {
+        Ok(exp) => println!("{}", exp.to_string()),
+        _ => {},
+    }
+
 }

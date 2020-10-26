@@ -1,5 +1,6 @@
 use std::str::FromStr;
 use std::string;
+use std::fmt;
 pub use crate::either::*;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -62,6 +63,17 @@ impl FromStr for Atom {
     }
 }
 
+impl Atom {
+    pub fn to_string(self) -> String {
+        match self {
+            Atom::Bool(val) => if val { String::from("#t") } else { String::from("#f") },
+            Atom::Number(num) => format!("{}", num),
+            Atom::Char(c) => format!("'{}'", c),
+            Atom::String(st) => format!("\"{}\"", st),
+        }
+    }
+}
+
 pub type List = Vec<Expression>;
 
 // Expressions
@@ -90,11 +102,12 @@ impl FromStr for Expression {
     }
 }
 
-fn find_next_subexpr(s: &str) -> Option<usize> {
-    if s.starts_with(LISP_OPC) {
-        s.find(LISP_CLC).map(|u| u + 1)
-    } else {
-        s.find(LISP_SEP)
+impl Expression {
+    pub fn to_string(self) -> String {
+        match self {
+            Left(atom) => atom.to_string(),
+            Right(comp) => comp.to_string(),
+        }
     }
 }
 
@@ -102,6 +115,14 @@ fn find_next_subexpr(s: &str) -> Option<usize> {
 pub struct Compound {
     operator: String,
     operands: Vec<Expression>,
+}
+
+fn find_next_subexpr(s: &str) -> Option<usize> {
+    if s.starts_with(LISP_OPC) {
+        s.find(LISP_CLC).map(|u| u + 1)
+    } else {
+        s.find(LISP_SEP)
+    }
 }
 
 impl FromStr for Compound {
@@ -160,6 +181,16 @@ impl FromStr for Compound {
             operator: operator,
             operands: subexpr,
         })
+    }
+}
+
+impl Compound {
+    pub fn to_string(self) -> String {
+        let mut res = format!("({}", self.operator);
+        for exp in self.operands {
+            res = format!("{} {}", res, exp.to_string());
+        }
+        format!("{})", res)
     }
 }
 
