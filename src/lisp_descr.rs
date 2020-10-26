@@ -72,7 +72,7 @@ impl FromStr for Expression {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // Hau sekulako basura da ta eztaka bate zentzuik.
+        // TODO: esto q es
         let string_of_s = String::from(s);
         let copy_of_s = string_of_s.as_str();
 
@@ -90,6 +90,14 @@ impl FromStr for Expression {
     }
 }
 
+fn find_next_subexpr(s: &str) -> Option<usize> {
+    if s.starts_with(LISP_OPC) {
+        s.find(LISP_CLC).map(|u| u + 1)
+    } else {
+        s.find(LISP_SEP)
+    }
+}
+
 #[derive(Debug, Eq, PartialEq)]
 pub struct Compound {
     operator: String,
@@ -99,34 +107,54 @@ pub struct Compound {
 impl FromStr for Compound {
     type Err = &'static str;
 
+    // TODO: Minimize trim method calls
     fn from_str(s: &str) -> Result<Self, Self::Err> {
 
-        if !(s.starts_with(LISP_OPC) || s.ends_with(LISP_CLC)) {
+        if !(s.starts_with(LISP_OPC) && s.ends_with(LISP_CLC)) {
             return Err("Malformed expression");
         }
         // Since they are two different chars,
-        // the length of s has to be more than one.
+        // the length of s has to be more than one
         let mut s = String::from(&s[1..s.len()-1]);
 
-        // operator found
         let op = match s
             .find(|c: char| c == LISP_SEP || c == LISP_OPC) {
                 Some(num) => num,
                 None => return Err("asd"),
         };
 
+        // operator found
         let operator = s.drain(..op)
             .collect::<String>()
             .trim()
             .to_string();
 
         // Find the remaining subexpressions and split them
-        // TODO: Do this WRIGHT
+        let mut subexpr: Vec<Expression> = Vec::new();
+        let mut s = s.as_str();
+        // println!("s:{}:{}:", operator, s);
+        
+        while !s.is_empty() {
+            s = s.trim();
+            // println!("s:{}:", s);
+            let expr_ind = match find_next_subexpr(s) {
+                Some(num) => num,
+                // TODO: handle incomplete expressions
+                None => s.len(),
+            };
 
-        let subexpr: Vec<Expression> = s.split(LISP_SEP)
-            .filter(|s| !s.is_empty())
-            .map(|s: &str| Expression::from_str(s).expect(s))
-            .collect();
+            let result = s.split_at(expr_ind);
+            let expr = result.0;
+            s = result.1;
+
+            // println!("expr:{}:{}:", expr, s);
+            let expr = match Expression::from_str(expr) {
+                Ok(exp) => exp,
+                Err(e) => return Err(e),
+            };
+            subexpr.push(expr);
+            // println!("sub:{}:", s);
+        }
 
         Ok(Compound {
             operator: operator,
@@ -134,6 +162,7 @@ impl FromStr for Compound {
         })
     }
 }
+
 // Definitions
 // etc... TODO functions, lambda, let, define
 

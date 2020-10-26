@@ -53,7 +53,16 @@ pub fn test_atom() {
 }
 
 pub fn test_expr() {
-    let ex = Expression::from_str("sum \"holaa\" 'c' #t  1     2 3 12 43 -123)");
+    let ex = Expression::from_str("(sum \"holaa\" 'c' #t  1     2 3 12 43 -123)");
+    assert!(ex.is_ok());
+
+    let ex = Expression::from_str("1");
+    assert_eq!(ex, Ok(Expression::Left(Atom::Number(1))));
+
+    let ex = Expression::from_str("(+ 1 2)");
+    assert!(ex.is_ok());
+
+    let ex = Expression::from_str("(+ 1 (+ 1 \"asd\") 2)");
     assert!(ex.is_ok());
 
 }

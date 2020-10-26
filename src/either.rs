@@ -6,6 +6,7 @@ pub enum Either<L, R> {
     Right(R),
 }
 
+#[allow(dead_code)]
 impl<L, R> Either<L, R> {
 
     fn is_left(&self) -> bool {
