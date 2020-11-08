@@ -57,7 +57,7 @@ pub fn test_expr() {
     assert!(ex.is_ok());
 
     let ex = Expression::from_str("1");
-    assert_eq!(ex, Ok(Expression::Left(Atom::Number(1))));
+    assert_eq!(ex, Ok(Expression::Left(Left(Atom::Number(1)))));
 
     let ex = Expression::from_str("(+ 1 2)");
     assert!(ex.is_ok());
@@ -69,5 +69,10 @@ pub fn test_expr() {
         Ok(exp) => println!("{}", exp.to_string()),
         _ => {},
     }
+
+    let ex = Expression::from_str("(+ foo (+ 1 \"asd\") 2)");
+    assert!(ex.is_ok());
+
+    println!("{}", ex.unwrap().to_string());
 
 }

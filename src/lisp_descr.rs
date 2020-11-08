@@ -66,7 +66,8 @@ impl FromStr for Atom {
 impl Atom {
     pub fn to_string(self) -> String {
         match self {
-            Atom::Bool(val) => if val { String::from("#t") } else { String::from("#f") },
+            Atom::Bool(val) => if val { String::from("#t") } 
+                                else { String::from("#f") },
             Atom::Number(num) => format!("{}", num),
             Atom::Char(c) => format!("'{}'", c),
             Atom::String(st) => format!("\"{}\"", st),
@@ -74,11 +75,63 @@ impl Atom {
     }
 }
 
-pub type List = Vec<Expression>;
+// pub type List = Vec<Expression>;
 
-// Expressions
+#[derive(Debug, Eq, PartialEq)]
+pub struct Symbol {
+    symbol: String,
+    value: Atom,
+}
+
+impl FromStr for Symbol {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let v = Symbol {
+            symbol: s.to_string(),
+            // TODO: look in the heap
+            value: Atom::Number(1),
+        };
+        Ok(v)
+    }
+}
+
+impl Symbol {
+    pub fn to_string(self) -> String {
+        self.symbol
+    }
+}
+
+pub type Value = Either<Atom, Symbol>;
+
+impl FromStr for Value {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+
+        // Try to parse an atom
+        let res = Atom::from_str(s);
+        if res.is_ok() {
+            return Ok(Left(res.unwrap()));
+        }
+
+        // Else, try to parse a symbol
+        let sym = Symbol::from_str(s)?;
+        Ok(Right(sym))
+    }
+}
+
+impl Value {
+    pub fn to_string(self) -> String {
+        match self {
+            Left(atom) => atom.to_string(),
+            Right(symb) => symb.to_string(),
+        }
+    }
+}
+
 // They are evaluated
-pub type Expression = Either<Atom, Compound>;
+pub type Expression = Either<Value, Compound>;
 
 impl FromStr for Expression {
     type Err = &'static str;
@@ -89,9 +142,9 @@ impl FromStr for Expression {
         let copy_of_s = string_of_s.as_str();
 
         // An expression is either an atom or a compound.
-        match Atom::from_str(s) {
+        match Value::from_str(s) {
             // The expression is an atom, return it.
-            Ok(atom) => Ok(Expression::Left(atom)),
+            Ok(val) => Ok(Expression::Left(val)),
             // The expression is not an atom,
             // try to parse it as a compound
             _ => match Compound::from_str(copy_of_s) {
@@ -186,11 +239,11 @@ impl FromStr for Compound {
 
 impl Compound {
     pub fn to_string(self) -> String {
-        let mut res = format!("({}", self.operator);
+        let mut res = format!("{}{}",LISP_OPC, self.operator);
         for exp in self.operands {
-            res = format!("{} {}", res, exp.to_string());
+            res = format!("{}{}{}", res, LISP_SEP, exp.to_string());
         }
-        format!("{})", res)
+        format!("{}{}", res, LISP_CLC)
     }
 }
 
