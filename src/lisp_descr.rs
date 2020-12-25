@@ -1,7 +1,7 @@
-use std::str::FromStr;
+pub use std::str::FromStr;
+pub use crate::either::*;
 use std::string;
 use std::fmt;
-pub use crate::either::*;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Atom {
@@ -78,31 +78,31 @@ impl Atom {
 // pub type List = Vec<Expression>;
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct Symbol {
-    symbol: String,
-    value: Atom,
+pub struct Name {
+    name: String,
+    pub value: Atom,
 }
 
-impl FromStr for Symbol {
+impl FromStr for Name {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let v = Symbol {
-            symbol: s.to_string(),
+        let n = Name {
+            name: s.to_string(),
             // TODO: look in the heap
             value: Atom::Number(1),
         };
-        Ok(v)
+        Ok(n)
     }
 }
 
-impl Symbol {
+impl Name {
     pub fn to_string(self) -> String {
-        self.symbol
+        self.name
     }
 }
 
-pub type Value = Either<Atom, Symbol>;
+pub type Value = Either<Atom, Name>;
 
 impl FromStr for Value {
     type Err = &'static str;
@@ -116,8 +116,8 @@ impl FromStr for Value {
         }
 
         // Else, try to parse a symbol
-        let sym = Symbol::from_str(s)?;
-        Ok(Right(sym))
+        let name = Name::from_str(s)?;
+        Ok(Right(name))
     }
 }
 
@@ -125,7 +125,7 @@ impl Value {
     pub fn to_string(self) -> String {
         match self {
             Left(atom) => atom.to_string(),
-            Right(symb) => symb.to_string(),
+            Right(name) => name.to_string(),
         }
     }
 }
@@ -142,15 +142,23 @@ impl FromStr for Expression {
         let copy_of_s = string_of_s.as_str();
 
         // An expression is either an atom or a compound.
-        match Value::from_str(s) {
-            // The expression is an atom, return it.
+        // match Value::from_str(s) {
+        //     // The expression is an atom, return it.
+        //     Ok(val) => Ok(Expression::Left(val)),
+        //     // The expression is not an atom,
+        //     // try to parse it as a compound
+        //     _ => match Compound::from_str(copy_of_s) {
+        //         Ok(comp) => Ok(Expression::Right(comp)),
+        //         _ => Err("Could not parse the expression"),
+        //     }
+        // }
+        let comp = Compound::from_str(s);
+        if comp.is_ok() {
+            return Ok(Expression::Right(comp.unwrap()));
+        }
+        match Value::from_str(copy_of_s) {
             Ok(val) => Ok(Expression::Left(val)),
-            // The expression is not an atom,
-            // try to parse it as a compound
-            _ => match Compound::from_str(copy_of_s) {
-                Ok(comp) => Ok(Expression::Right(comp)),
-                _ => Err("Could not parse the expression"),
-            }
+            Err(e) => Err(e),
         }
     }
 }
@@ -158,7 +166,7 @@ impl FromStr for Expression {
 impl Expression {
     pub fn to_string(self) -> String {
         match self {
-            Left(atom) => atom.to_string(),
+            Left(value) => value.to_string(),
             Right(comp) => comp.to_string(),
         }
     }
@@ -166,13 +174,13 @@ impl Expression {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Compound {
-    operator: String,
-    operands: Vec<Expression>,
+    pub operator: String,
+    pub operands: Vec<Expression>,
 }
 
 fn find_next_subexpr(s: &str) -> Option<usize> {
     if s.starts_with(LISP_OPC) {
-        s.find(LISP_CLC).map(|u| u + 1)
+        s.rfind(LISP_CLC).map(|u| u + 1)
     } else {
         s.find(LISP_SEP)
     }
