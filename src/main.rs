@@ -19,10 +19,10 @@ fn main() {
     };
 
     println!("{:?}", exp);
-    println!("{}", exp.to_string());
-    // let ev = exp.eval();
+    // println!("{}", exp.to_string());
+    let ev = exp.eval();
 
-    // if ev.is_ok() {
-    //     println!("ev {}", ev.unwrap().to_string());
-    // }
+    if ev.is_ok() {
+        println!("ev {}", ev.unwrap().to_string());
+    }
 }
