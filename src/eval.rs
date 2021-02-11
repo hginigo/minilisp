@@ -1,4 +1,5 @@
-use crate::lisp_descr::*;
+use crate::lisp::*;
+use std::string::String;
 use std::collections::HashMap;
 
 pub type Heap = HashMap<String, Expression>;
@@ -119,7 +120,6 @@ impl Eval for Compound {
     type Err = &'static str;
 
     fn eval(self) -> Result<Atom, Self::Err> {
-        let s = String::from("+");
         match self.operator.as_str() {
             "+" => sum(self.operands),
             "-" => sub(self.operands),

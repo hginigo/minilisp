@@ -1,4 +1,4 @@
-use crate::lisp_descr::*;
+use crate::lisp::*;
 use std::str::FromStr;
 
 pub fn test_atom() {
@@ -66,13 +66,13 @@ pub fn test_expr() {
     assert!(ex.is_ok());
 
     match ex {
-        Ok(exp) => println!("{}", exp.to_string()),
+        Ok(exp) => println!("{:?}", exp),
         _ => {},
     }
 
     let ex = Expression::from_str("(+ foo (+ 1 \"asd\") 2)");
     assert!(ex.is_ok());
 
-    println!("{}", ex.unwrap().to_string());
+    println!("{:?}", ex.unwrap());
 
 }
