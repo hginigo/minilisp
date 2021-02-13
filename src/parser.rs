@@ -34,7 +34,10 @@ impl FromStr for Atom {
         //println!("fi: {}, s: {}, la: {}", fi, s, la);
 
         if !la.eq(&fi) {
-            return Err("String or Char not closed correctly.");
+            match s.len() {
+                1 => { return Err("Char not closed correctly."); },
+                _ => { return Err("String not closed correctly."); },
+            }
         }
 
         match fi {
@@ -48,7 +51,7 @@ impl FromStr for Atom {
                     Some(c) => Ok(Atom::Char(c)),
                 }
             }
-            _ => Err("Unknown identifier"),
+            _ => Err("Unknown string closure"),
         }
     }
 }
@@ -77,7 +80,7 @@ impl FromStr for Value {
             return Ok(Left(res.unwrap()));
         }
 
-        // Else, try to parse a symbol
+        // Else, try to parse a name
         let name = Name::from_str(s)?;
         Ok(Right(name))
     }
@@ -87,121 +90,89 @@ impl FromStr for Expression {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // TODO: esto q es
-        let string_of_s = String::from(s);
-        let copy_of_s = string_of_s.as_str();
-
         // An expression is either an atom or a compound.
-        // match Value::from_str(s) {
-        //     // The expression is an atom, return it.
-        //     Ok(val) => Ok(Expression::Left(val)),
-        //     // The expression is not an atom,
-        //     // try to parse it as a compound
-        //     _ => match Compound::from_str(copy_of_s) {
-        //         Ok(comp) => Ok(Expression::Right(comp)),
-        //         _ => Err("Could not parse the expression"),
-        //     }
-        // }
         let comp = Compound::from_str(s);
         if comp.is_ok() {
             return Ok(Expression::Right(comp.unwrap()));
         }
-        match Value::from_str(copy_of_s) {
+        match Value::from_str(s) {
             Ok(val) => Ok(Expression::Left(val)),
             Err(e) => Err(e),
         }
     }
 }
 
-fn find_next_subexpr(s: &str) -> Option<usize> {
-    if s.starts_with(LISP_OPC) {
-        s.rfind(LISP_CLC).map(|u| u + 1)
-    } else {
-        s.find(LISP_SEP)
+// Tries to find the next token for compound lists and returns
+// the position where the token ends.
+// It does not validate which characters are valid.
+fn find_next_token(s: &str) -> usize {
+    if s.is_empty() {
+        return 0;
     }
+
+    let slen = s.len();
+    if !s.starts_with(LISP_OPC) {
+        return match s.find(LISP_SEP) {
+            Some(n) => n,
+            None => slen,
+        };
+    }
+
+    let mut count: i32 = 0;
+
+    for (i, c) in s.chars().enumerate() {
+        if c == LISP_OPC {
+            count += 1;
+        }
+        if c == LISP_CLC {
+            count -= 1;
+            if count == 0 {
+                return i+1;
+            }
+        }
+    }
+    slen
 }
 
 impl FromStr for Compound {
     type Err = &'static str;
 
-    // TODO: Minimize trim method calls
+    // TODO: Check empty lists
     fn from_str(s: &str) -> Result<Self, Self::Err> {
 
         if !(s.starts_with(LISP_OPC) && s.ends_with(LISP_CLC)) {
             return Err("Malformed expression");
         }
-        // Since they are two different chars,
-        // the length of s has to be more than one
-        let mut s = String::from(&s[1..s.len()-1]);
+        let s = s[1..s.len()-1].trim();
 
-        let op = match s
-            .find(|c: char| c == LISP_SEP || c == LISP_OPC) {
-                Some(num) => num,
-                None => return Err("asd"),
+        let op = match s.find(|c:char| c == LISP_SEP || c == LISP_OPC) {
+            Some(n) => n,
+            None => s.len(),
         };
 
-        // operator found
-        let operator = s.drain(..op)
-            .collect::<String>()
-            .trim()
-            .to_string();
+        let operator = String::from(&s[0..op]);
 
-        // Find the remaining subexpressions and split them
-        let mut subexpr: Vec<Expression> = Vec::new();
-        let mut s = s.as_str();
+        let mut s = s[op..s.len()].trim();
+        let mut operands = Vec::new();
         // println!("s:{}:{}:", operator, s);
-        
+
         while !s.is_empty() {
-            s = s.trim();
-            // println!("s:{}:", s);
-            let expr_ind = match find_next_subexpr(s) {
-                Some(num) => num,
-                // TODO: handle incomplete expressions
-                None => s.len(),
-            };
+            let sub = find_next_token(s);
 
-            let result = s.split_at(expr_ind);
-            let expr = result.0;
-            s = result.1;
-
-            // println!("expr:{}:{}:", expr, s);
-            let expr = match Expression::from_str(expr) {
+            let operand = match Expression::from_str(&s[0..sub]) {
                 Ok(exp) => exp,
-                Err(e) => return Err(e),
+                Err(err) => return Err(err),
             };
-            subexpr.push(expr);
-            // println!("sub:{}:", s);
+
+            operands.push(operand);
+            s = &s[sub..s.len()].trim();
+            // println!("s:{}:", s);
         }
 
         Ok(Compound {
             operator: operator,
-            operands: subexpr,
+            operands: operands,
         })
     }
 }
 
-// pub fn parse_atom(atom: String) -> Result<Atom, str> {
-//     match atom.parse::<i32>() {
-//         Ok(int) => Atom::Number(int),
-//         _ => {}
-//     }
-
-//     if atom == "#t" {
-//         Atom::Bool(true)
-//     }
-
-//     if atom == "#f" {
-//         Atom::Bool(false)
-//     }
-
-//     if atom.len() == 1 {
-//         Atom::Char(atom.pop())
-//     }
-
-//     // atom.len() != 1
-//     if atom.starts_with('\"') & atom.ends_with('\"') {
-//         Atom::String(atom.drain(1..atom.len()).collect())
-//     }
-
-//     Err("The given atom could not be identified")
-// }
